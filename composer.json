@@ -1,0 +1,25 @@
+{
+    "name": "polus/polus-adr",
+    "description": "base for my version of adr",
+    "homepage": "https://github.com/polusphp/polus-adr",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Andreas Sundqvist",
+            "email": "andreas@forme.se"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0",
+        "polus/polus": "^4.1",
+        "aura/payload": "~3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Polus\\Adr\\": "src/",
+            "Polus\\Adr\\_Config\\": "config/",
+            "Polus\\Adr\\Test\\": "tests/src",
+            "Polus\\Adr\\Test\\_Config\\": "tests/config"
+        }
+    }
+}
