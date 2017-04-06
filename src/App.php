@@ -6,17 +6,14 @@ use Aura\Di\Container;
 use Aura\Di\Factory;
 use Aura\Router\Map;
 use Aura\Router\RouterContainer;
+use BadMethodCallException;
 use Polus\Middleware;
+use Polus\Polus_Interface\DispatchInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Zend\Diactoros\Response;
 
 class App
 {
-    /**
-     * @var Sender
-     */
-    public $sender;
-
     /**
      * @var ServerRequestInterface
      */
@@ -32,16 +29,6 @@ class App
      * @var Map
      */
     protected $map;
-
-    /**
-     * @var mixed
-     */
-    protected $errorHandler;
-
-    /**
-     * @var string
-     */
-    protected $config_dir = '';
 
     /**
      * @var array
@@ -69,9 +56,9 @@ class App
      * @param string $vendorNs
      * @param string $mode
      */
-    public function __construct($vendorNs, $mode = 'production', $request = null)
+    public function __construct($vendorNs, $mode = 'production', ServerRequestInterface $request = null)
     {
-        $this->container = new container(new Factory);
+        $this->container = new Container(new Factory);
 
         if (isset($this->modeMap[$mode])) {
             $this->addConfig($this->modeMap[$mode]);
@@ -83,24 +70,28 @@ class App
             }
         }
         $this->addConfig($vendorNs . '\_Config\Common');
-        $this->addConfig('Polus\_Config\Common');
         $this->addConfig('Polus\Adr\_Config\Common');
 
         $this->dispatcher = $this->container->get('polus/adr:dispatcher');
-        $this->routerContainer = $this->container->get('polus:router_container');
-        $this->request = $request ?? $this->container->get('polus:request');
+        $this->routerContainer = $this->container->get('polus/adr:router_container');
+        $this->request = $request;
         $this->map = $this->routerContainer->getMap();
-        $this->middlewares = $this->container->get('polus:middlewares');
+        $this->middlewares = $this->container->get('polus/adr:middlewares');
     }
 
-    public function getContainer()
+    public function getContainer(): Container
     {
         return $this->container;
     }
 
-    public function getDispatcher()
+    public function getDispatcher(): DispatchInterface
     {
         return $this->dispatcher;
+    }
+
+    public function getMap(): Map
+    {
+        return $this->map;
     }
 
     /**
@@ -110,11 +101,6 @@ class App
     public function setRequest(ServerRequestInterface $request)
     {
         $this->request = $request;
-    }
-
-    public function getMap()
-    {
-        return $this->map;
     }
 
     public function addMiddleware(callable $middleware)
@@ -139,7 +125,7 @@ class App
      * @param $position
      * @return boolean
      */
-    public function addRouterRule(callable $rule, $position = 'append')
+    public function addRouterRule(callable $rule, string $position = 'append'): bool
     {
         $ruleIterator = $this->routerContainer->getRuleIterator();
         $ruleIterator->$position($rule);
@@ -160,66 +146,18 @@ class App
         $response = $relay($this->request, $response);
     }
 
-    public function get($path, $domain, $input = null, $responder = null)
+    public function __call($method, $args)
     {
-        if (!($domain instanceof Action)) {
-            $domain = new Action($domain, $input, $responder);
+        $allowed = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'];
+        if (in_array($method, $allowed)) {
+            $path = $args[0];
+            $domain = $args[1];
+            if (!($domain instanceof Action)) {
+                $domain = new Action($domain, $args[2] ?? null, $args[3] ?? null);
+            }
+
+            return $this->map->$method(md5($path), $path, $domain);
         }
-
-        return $this->map->get(md5($path), $path, $domain);
-    }
-
-    public function post($path, $domain, $input = null, $responder = null)
-    {
-        if (!($domain instanceof Action)) {
-            $domain = new Action($domain, $input, $responder);
-        }
-
-        return $this->map->post(md5($path), $path, $domain);
-    }
-
-    public function put($path, $domain, $input = null, $responder = null)
-    {
-        if (!($domain instanceof Action)) {
-            $domain = new Action($domain, $input, $responder);
-        }
-
-        return $this->map->put(md5($path), $path, $domain);
-    }
-
-    public function delete($path, $domain, $input = null, $responder = null)
-    {
-        if (!($domain instanceof Action)) {
-            $domain = new Action($domain, $input, $responder);
-        }
-
-        return $this->map->delete(md5($path), $path, $domain);
-    }
-
-    public function patch($path, $domain, $input = null, $responder = null)
-    {
-        if (!($domain instanceof Action)) {
-            $domain = new Action($domain, $input, $responder);
-        }
-
-        return $this->map->patch(md5($path), $path, $domain);
-    }
-
-    public function head($path, $domain, $input = null, $responder = null)
-    {
-        if (!($domain instanceof Action)) {
-            $domain = new Action($domain, $input, $responder);
-        }
-
-        return $this->map->head(md5($path), $path, $domain);
-    }
-
-    public function options($path, $domain, $input = null, $responder = null)
-    {
-        if (!($domain instanceof Action)) {
-            $domain = new Action($domain, $input, $responder);
-        }
-
-        return $this->map->options(md5($path), $path, $domain);
+        throw new BadMethodCallException();
     }
 }

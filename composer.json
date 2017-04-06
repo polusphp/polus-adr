@@ -11,13 +11,25 @@
     ],
     "require": {
         "php": ">=7.0.0",
-        "polus/polus": "^4.1",
-        "aura/payload": "~3.0"
+        "relay/relay": "~1.0",
+        "relay/middleware": "~1.0",
+        "filp/whoops": "^2.1",
+        "aura/di": "2.*",
+        "zendframework/zend-diactoros": "~1.0",
+        "franzl/whoops-middleware": "^0.4",
+        "aura/payload": "~3.0",
+        "polus/polus-interface": "^1.0",
+        "polus/polus-router": "^1.0",
+        "polus/polus-middleware": "^1.1"
     },
     "autoload": {
         "psr-4": {
             "Polus\\Adr\\": "src/",
-            "Polus\\Adr\\_Config\\": "config/",
+            "Polus\\Adr\\_Config\\": "config/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
             "Polus\\Adr\\Test\\": "tests/src",
             "Polus\\Adr\\Test\\_Config\\": "tests/config"
         }

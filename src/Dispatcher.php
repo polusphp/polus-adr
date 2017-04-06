@@ -5,8 +5,8 @@ namespace Polus\Adr;
 use Aura\Payload\Payload;
 use Aura\Payload_Interface\PayloadStatus;
 use Aura\Router\Route;
-use Polus\DispatchInterface;
-use Polus\ResolverInterface;
+use Polus\Polus_Interface\DispatchInterface;
+use Polus\Polus_Interface\ResolverInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -25,7 +25,7 @@ class Dispatcher implements DispatchInterface
      * @param ResponseInterface $response
      * @return ResponseInterface
      */
-    public function dispatch(Route $route, ServerRequestInterface $request, ResponseInterface $response)
+    public function dispatch(Route $route, ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $action = $route->handler;
         if (!($action instanceof Action)) {

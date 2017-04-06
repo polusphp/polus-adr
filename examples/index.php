@@ -10,7 +10,7 @@ use Polus\Adr\Test\TestInput;
 use Zend\Diactoros\ServerRequestFactory;
 
 $appNs = 'Polus\Test';
-$app = new App($appNs);
+$app = new App($appNs, 'production', ServerRequestFactory::fromGlobals());
 
 $app->get('/test/{id}', Domain\Test::class);
 $app->get('/input-test/{id}', Domain\InputTest::class);
