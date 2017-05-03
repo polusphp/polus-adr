@@ -8,16 +8,17 @@ use Aura\Router\Route;
 use Fixtures\Domains\DispatchInputTest;
 use Fixtures\Domains\DispatchResponderTest;
 use Fixtures\Domains\DomainDispatchTest;
-use Fixtures\Domains\DomainInputTest;
 use Fixtures\Domains\EmptyDomain;
 use Polus\Polus_Interface\DispatchInterface;
-use Polus\Polus_Interface\ResolverInterface;
 use Zend\Diactoros\Response;
 use Zend\Diactoros\ServerRequestFactory;
 
 class DispatcherTest extends \PHPUnit_Framework_TestCase
 {
     private $resolver;
+    /**
+     * @var Route
+     */
     private $route;
     private $request;
     private $response;
@@ -74,7 +75,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase
         $response = $dispatcher->dispatch($this->route, $this->request, $this->response);
 
         $this->assertSame(401, $response->getStatusCode());
-        $this->assertEquals('{"status":"fail","data":{"test":false}}', $response->getBody()->__toString());
+        $this->assertEquals('{"status":"fail","code":"NOT_AUTHENTICATED","data":{"test":false,"messages":null,"input":null}}', $response->getBody()->__toString());
     }
 
     public function testDispatchCustomInput()
