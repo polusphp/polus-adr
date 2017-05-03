@@ -10,6 +10,8 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class JsonResponder implements ResponderInterface
 {
+    protected $payloadStatus;
+
     public function __construct(PayloadStatusToHttpStatus $payloadStatus)
     {
         $this->payloadStatus = $payloadStatus;
@@ -28,12 +30,14 @@ class JsonResponder implements ResponderInterface
             'status' => $status,
         ];
 
-        if ($status == 'error') {
+        if (in_array($status, ['error', 'fail'])) {
             $messages = $payload->getMessages();
-            if (is_array($messages)) {
-                $json['message'] = $messages[0];
-            } else {
-                $json['message'] = $messages;
+            if ($status === 'error') {
+                if (is_array($messages)) {
+                    $json['message'] = $messages[0];
+                } else {
+                    $json['message'] = $messages;
+                }
             }
             $data = (array) $payload->getOutput();
             $data['messages'] = $payload->getMessages();
