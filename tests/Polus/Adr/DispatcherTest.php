@@ -111,7 +111,7 @@ class DispatcherTest extends \PHPUnit_Framework_TestCase
         $this->assertSame(400, $response->getStatusCode());
         $body = $response->getBody()->__toString();
         $json = json_decode($body, true);
-var_dump($json);
+
         $this->assertEquals('fail', $json['status']);
         $this->assertEquals('Input exception test', $json['data']['messages']);
         $this->assertArrayHasKey('exception', $json['data']);
