@@ -22,6 +22,10 @@
         "polus/polus-router": "^1.0",
         "polus/polus-middleware": "^1.1"
     },
+    "require-dev": {
+        "phpunit/phpunit": "~5.0",
+        "mockery/mockery": "dev-master"
+    },
     "autoload": {
         "psr-4": {
             "Polus\\Adr\\": "src/",
@@ -30,8 +34,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Polus\\Adr\\Test\\": "tests/src",
-            "Polus\\Adr\\Test\\_Config\\": "tests/config"
+            "Fixtures\\": "tests/Fixtures",
+            "Polus\\Adr\\": "tests/Polus/Adr/",
+            "Polus\\Adr\\_Config\\": "tests/config/"
         }
     }
 }
