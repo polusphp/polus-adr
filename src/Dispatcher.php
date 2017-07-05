@@ -21,15 +21,20 @@ class Dispatcher implements DispatchInterface
         if (is_null($resolver)) {
             throw new InvalidArgumentException('Missing resolver');
         }
+
         $this->resolver = $resolver;
     }
 
-    public function dispatch(Route $route, ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
-    {
+    public function dispatch(
+        Route $route,
+        ServerRequestInterface $request,
+        ResponseInterface $response
+    ): ResponseInterface {
         $action = $route->handler;
         if (!($action instanceof Action)) {
             return $response->withStatus(500);
         }
+
         $domain = false;
         if ($action->getDomain()) {
             $domain = $action->getDomain();
@@ -37,6 +42,7 @@ class Dispatcher implements DispatchInterface
                 $domain = $this->resolver->resolve($domain);
             }
         }
+
         if (is_callable($domain)) {
             try {
                 $input = $action->getInput();
