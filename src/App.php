@@ -5,13 +5,23 @@ namespace Polus\Adr;
 use Aura\Di\Container;
 use Aura\Di\Factory;
 use Aura\Router\Map;
+use Aura\Router\Route;
 use Aura\Router\RouterContainer;
 use BadMethodCallException;
 use Polus\Middleware;
 use Polus\Polus_Interface\DispatchInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Zend\Diactoros\Response;
 
+/**
+ * Class App
+ *
+ * @method Route get(string $route, mixed $domain)
+ * @method Route post(string $route, mixed $domain)
+ * @method Route patch(string $route, mixed $domain)
+ * @method Route delete(string $route, mixed $domain)
+ */
 class App
 {
     /**
@@ -48,13 +58,19 @@ class App
 
     /**
      * Dispatcher
-     * @var Polus\DispatcherInterface
+     * @var DispatchInterface
      */
     protected $dispatcher;
 
     /**
+     * @var Container
+     */
+    protected $container;
+
+    /**
      * @param string $vendorNs
      * @param string $mode
+     * @param ServerRequestInterface|null $request
      */
     public function __construct($vendorNs, $mode = 'production', ServerRequestInterface $request = null)
     {
@@ -96,7 +112,7 @@ class App
 
     /**
      * For testing purpose
-     * @param ServerRequestInterface $request [description]
+     * @param ServerRequestInterface $request
      */
     public function setRequest(ServerRequestInterface $request)
     {
@@ -122,7 +138,7 @@ class App
 
     /**
      * @param callable $rule
-     * @param $position
+     * @param string $position
      * @return boolean
      */
     public function addRouterRule(callable $rule, string $position = 'append'): bool
@@ -132,10 +148,7 @@ class App
         return true;
     }
 
-    /**
-     * @return void
-     */
-    public function run()
+    public function run(): ResponseInterface
     {
         $relayBuilder = $this->container->get('relay');
         $queue = $this->middlewares;
@@ -144,6 +157,8 @@ class App
 
         $response = new Response();
         $response = $relay($this->request, $response);
+
+        return $response;
     }
 
     public function __call($method, $args)
