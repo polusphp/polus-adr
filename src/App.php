@@ -171,7 +171,7 @@ class App
                 $domain = new Action($domain, $args[2] ?? null, $args[3] ?? null);
             }
 
-            return $this->map->$method(md5($path), $path, $domain);
+            return $this->map->$method(md5($method . $path), $path, $domain);
         }
         throw new BadMethodCallException();
     }
