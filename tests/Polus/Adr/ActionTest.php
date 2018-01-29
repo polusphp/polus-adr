@@ -7,8 +7,9 @@ use Fixtures\Domains\DomainInputTest;
 use Fixtures\Domains\DomainResponderTest;
 use Fixtures\Input\TestInput;
 use Polus\Adr\Responder\JsonResponder;
+use PHPUnit\Framework\TestCase;
 
-class ActionTest extends \PHPUnit_Framework_TestCase
+class ActionTest extends TestCase
 {
     public function testDefaultArguments()
     {

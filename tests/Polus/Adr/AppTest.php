@@ -4,8 +4,9 @@ namespace Polus\Adr;
 
 use Aura\Router\Exception\RouteAlreadyExists;
 use Zend\Diactoros\ServerRequestFactory;
+use PHPUnit\Framework\TestCase;
 
-class AppTest extends \PHPUnit_Framework_TestCase
+class AppTest extends TestCase
 {
     protected function setUp()
     {
