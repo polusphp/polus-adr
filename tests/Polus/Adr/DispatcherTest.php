@@ -12,8 +12,9 @@ use Fixtures\Domains\EmptyDomain;
 use Polus\Polus_Interface\DispatchInterface;
 use Zend\Diactoros\Response;
 use Zend\Diactoros\ServerRequestFactory;
+use PHPUnit\Framework\TestCase;
 
-class DispatcherTest extends \PHPUnit_Framework_TestCase
+class DispatcherTest extends TestCase
 {
     private $resolver;
     /**

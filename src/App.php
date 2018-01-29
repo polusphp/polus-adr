@@ -1,13 +1,16 @@
 <?php
+declare(strict_types=1);
 
 namespace Polus\Adr;
 
 use Aura\Di\Container;
-use Aura\Di\Factory;
 use Aura\Router\Map;
 use Aura\Router\Route;
 use Aura\Router\RouterContainer;
 use BadMethodCallException;
+use Northwoods\Broker\Broker;
+use Polus\Adr\_Config\Common;
+use Polus\Config\ContainerBuilder;
 use Polus\Middleware;
 use Polus\Polus_Interface\DispatchInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -71,23 +74,26 @@ class App
      * @param string $vendorNs
      * @param string $mode
      * @param ServerRequestInterface|null $request
+     * @throws \Aura\Di\Exception\ServiceNotFound
+     * @throws \Aura\Di\Exception\SetterMethodNotFound
      */
     public function __construct($vendorNs, $mode = 'production', ServerRequestInterface $request = null)
     {
-        $this->container = new Container(new Factory);
-
+        $configs = [];
         if (isset($this->modeMap[$mode])) {
-            $this->addConfig($this->modeMap[$mode]);
+            $configs[] = $this->modeMap[$mode];
         } else {
             if ($mode == 'development') {
-                $this->addConfig($vendorNs . '\_Config\Dev');
+                $configs[] = $vendorNs . '\_Config\Dev';
             } else {
-                $this->addConfig($vendorNs . '\_Config\Production');
+                $configs[] = $vendorNs . '\_Config\Production';
             }
         }
-        $this->addConfig($vendorNs . '\_Config\Common');
-        $this->addConfig('Polus\Adr\_Config\Common');
+        $configs[] = $vendorNs . '\_Config\Common';
+        $configs[] = new Common();
 
+        $builder = new ContainerBuilder();
+        $this->container = $builder->newConfiguredInstance($configs, true);
         $this->dispatcher = $this->container->get('polus/adr:dispatcher');
         $this->routerContainer = $this->container->get('polus/adr:router_container');
         $this->request = $request;
@@ -119,21 +125,9 @@ class App
         $this->request = $request;
     }
 
-    public function addMiddleware(callable $middleware)
+    public function addMiddleware(callable $middleware, callable $condition = null)
     {
-        $this->middlewares[] = $middleware;
-    }
-
-    /**
-     * @param string $class
-     */
-    public function addConfig($class)
-    {
-        if (class_exists($class)) {
-            $config = $this->container->newInstance($class);
-            $config->define($this->container);
-            $this->configs[] = $config;
-        }
+        $this->middlewares[] = [$middleware, $condition];
     }
 
     /**
@@ -150,15 +144,20 @@ class App
 
     public function run(): ResponseInterface
     {
-        $relayBuilder = $this->container->get('relay');
-        $queue = $this->middlewares;
-        $queue[] = new Middleware\Dispatcher($this->getDispatcher());
-        $relay = $relayBuilder->newInstance($queue);
+        $broker = new Broker($this->container);
+        foreach ($this->middlewares as $middleware) {
+            if (is_array($middleware)) {
+                $broker->when($middleware[1], $middleware[0]);
+            } else {
+                $broker->always($middleware);
+            }
+        }
+        $broker->always(new Middleware\Dispatcher($this->getDispatcher()));
 
-        $response = new Response();
-        $response = $relay($this->request, $response);
-
-        return $response;
+        return $broker->handle($this->request, function () {
+            $response = new Response();
+            return $response->withStatus(404);
+        });
     }
 
     public function __call($method, $args)
