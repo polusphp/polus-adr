@@ -3,7 +3,6 @@
 namespace Polus\Adr\_Config;
 
 use Aura\Di\Container;
-use Aura\Di\ContainerConfigInterface;
 use Aura\Router\RouterContainer;
 use Aura\Router\Rule;
 use Franzl\Middleware\Whoops\Middleware;
@@ -13,62 +12,69 @@ use Polus\Middleware\CliResponseSender;
 use Polus\Middleware\Router;
 use Polus\Middleware\Status404;
 use Polus\Polus_Interface\ResolverInterface;
+use Polus\Polus_Interface\ConfigInterface;
 use Polus\Router\AliasRule;
 use Polus\Router\Route;
 use Relay\Middleware\FormContentHandler;
 use Relay\Middleware\JsonContentHandler;
 use Relay\Middleware\ResponseSender;
+use Psr\Container\ContainerInterface;
 
-class Common implements ContainerConfigInterface
+class Common implements ConfigInterface
 {
-    public function define(Container $di)
+    public function config(ContainerInterface $container): ContainerInterface
     {
-        if (!isset($di->params[Router::class]['router'])) {
-            $di->params[Router::class]['router'] = $di->lazyGet('polus/adr:router_container');
+        if (!$container instanceof Container) {
+            throw new \InvalidArgumentException("Config class not meant to be invoke outside core");
         }
-        if (!$di->has('polus/adr:middlewares')) {
-            $di->set('polus/adr:middlewares', function () use ($di) {
+        $di = $container;
+
+        if (!$container->has('polus/adr:middlewares')) {
+            $di->set('polus/adr:middlewares', function () use ($container) {
                 $queue = [];
-                if ($di->has('mode:middlewares')) {
-                    $queue = $di->get('mode:middlewares');
+                if ($container->has('mode:middlewares')) {
+                    $queue = $container->get('mode:middlewares');
                 }
                 if (php_sapi_name() !== 'cli') {
-                    $queue[] = $di->newInstance(ResponseSender::class);
+                    $queue[] = new ResponseSender();
                 } else {
-                    $queue[] = $di->newInstance(CliResponseSender::class);
+                    $queue[] = new CliResponseSender();
                 }
-                $queue[] = $di->newInstance(Middleware::class);
-                if ($di->has('mode:middlewares:preRouter')) {
-                    $queue = array_merge($queue, $di->get('mode:middlewares:preRouter'));
+                $queue[] = new Middleware();
+                if ($container->has('mode:middlewares:preRouter')) {
+                    $queue = array_merge($queue, $container->get('mode:middlewares:preRouter'));
                 }
-                $queue[] = $di->newInstance(Router::class);
-                if ($di->has('mode:middlewares:postRouter')) {
-                    $queue = array_merge($queue, $di->get('mode:middlewares:postRouter'));
+                $queue[] = new Router($container->get('polus/adr:router_container'));
+                if ($container->has('mode:middlewares:postRouter')) {
+                    $queue = array_merge($queue, $container->get('mode:middlewares:postRouter'));
                 }
-                $queue[] = $di->newInstance(Status404::class);
-                $queue[] = $di->newInstance(FormContentHandler::class);
-                $queue[] = $di->newInstance(JsonContentHandler::class, [
-                    'assoc' => true,
-                ]);
-                if ($di->has('mode:middlewares:preDispatcher')) {
-                    $queue = array_merge($queue, $di->get('mode:middlewares:preDispatcher'));
+                $queue[] = new Status404();
+                $queue[] = new FormContentHandler();
+                $queue[] = new JsonContentHandler(true);
+                if ($container->has('mode:middlewares:preDispatcher')) {
+                    $queue = array_merge($queue, $container->get('mode:middlewares:preDispatcher'));
                 }
                 return $queue;
             });
+        } else {
+            $di->set('polus/adr:middlewares', $container->get('polus/adr:middlewares'));
         }
 
-        if (!$di->has('polus/adr:dispatch_resolver')) {
+        if (!$container->has('polus/adr:dispatch_resolver')) {
             $di->set('polus/adr:dispatch_resolver', $di->lazyNew(Resolver::class, [
                 'resolver' => function ($cls) use ($di) {
                     return $di->newInstance($cls);
                 },
             ]));
+        } else {
+            $di->set('polus/adr:dispatch_resolver', $container->get('polus/adr:dispatch_resolver'));
         }
-        $di->types[ResolverInterface::class] = $di->lazyGet('polus/adr:dispatch_resolver');
 
-        if (!$di->has('polus/adr:router_container')) {
-            $di->set('polus/adr:router_container', function () use ($di) {
-                $routerContainer = $di->newInstance(RouterContainer::class);
+        if (!$container->has('polus/adr:router_container')) {
+            $di->set('polus/adr:router_container', function () use ($container) {
+                $basePath = $container->has('basePath') ? $container->get('basePath') : null;
+
+                $routerContainer = new RouterContainer($basePath);
                 $routerContainer->setRouteFactory(function () {
                     return new Route();
                 });
@@ -82,22 +88,13 @@ class Common implements ContainerConfigInterface
 
                 return $routerContainer;
             });
+        } else {
+            $di->set('polus/adr:router_container', $container->get('polus/adr:router_container'));
         }
 
+        $di->types[ResolverInterface::class] = $di->lazyGet('polus/adr:dispatch_resolver');
         $di->set('polus/adr:dispatcher', $di->lazyNew(Dispatcher::class));
-    }
 
-    /**
-     *
-     * Modify service objects after the Container is locked.
-     *
-     * @param Container $di The DI container.
-     *
-     * @return null
-     *
-     */
-    public function modify(Container $di)
-    {
-        // TODO: Implement modify() method.
+        return $di;
     }
 }

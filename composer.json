@@ -20,6 +20,7 @@
         "polus/polus-interface": "^1.0",
         "polus/polus-router": "^1.0",
         "polus/polus-middleware": "^1.1",
+        "polus/config": "^1.0",
         "northwoods/broker": "^2.0"
     },
     "require-dev": {

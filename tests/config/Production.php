@@ -2,37 +2,13 @@
 
 namespace Test\_Config;
 
-use Aura\Di\Container;
-use Aura\Di\ContainerConfigInterface;
+use Polus\Polus_Interface\ConfigInterface;
+use Psr\Container\ContainerInterface;
 
-class Production implements ContainerConfigInterface
+class Production implements ConfigInterface
 {
-
-    /**
-     *
-     * Define params, setters, and services before the Container is locked.
-     *
-     * @param Container $di The DI container.
-     *
-     * @return null
-     *
-     */
-    public function define(Container $di)
+    public function config(ContainerInterface $container): ContainerInterface
     {
-        // TODO: Implement define() method.
-    }
-
-    /**
-     *
-     * Modify service objects after the Container is locked.
-     *
-     * @param Container $di The DI container.
-     *
-     * @return null
-     *
-     */
-    public function modify(Container $di)
-    {
-        // TODO: Implement modify() method.
+        return $container;
     }
 }

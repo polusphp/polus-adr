@@ -3,13 +3,13 @@
 namespace Polus\Adr;
 
 use Aura\Di\Container;
-use Aura\Di\ContainerBuilder;
-use Aura\Di\Factory;
 use Aura\Router\Map;
 use Aura\Router\Route;
 use Aura\Router\RouterContainer;
 use BadMethodCallException;
 use Northwoods\Broker\Broker;
+use Polus\Adr\_Config\Common;
+use Polus\Config\ContainerBuilder;
 use Polus\Middleware;
 use Polus\Polus_Interface\DispatchInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -89,7 +89,7 @@ class App
             }
         }
         $configs[] = $vendorNs . '\_Config\Common';
-        $configs[] = 'Polus\Adr\_Config\Common';
+        $configs[] = new Common();
 
         $builder = new ContainerBuilder();
         $this->container = $builder->newConfiguredInstance($configs, true);
