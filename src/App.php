@@ -142,22 +142,40 @@ class App
         return true;
     }
 
-    public function run(): ResponseInterface
+    public function run()
     {
-        $broker = new Broker($this->container);
-        foreach ($this->middlewares as $middleware) {
-            if (is_array($middleware)) {
-                $broker->when($middleware[1], $middleware[0]);
-            } else {
-                $broker->always($middleware);
+        $this->middlewares[] = new Middleware\Dispatcher($this->getDispatcher());
+        $middlewareDispatcher = new \mindplay\middleman\Dispatcher($this->middlewares);
+
+        $response = $middlewareDispatcher->dispatch($this->request);
+
+        $this->render($response);
+    }
+
+    public function render(ResponseInterface $response)
+    {
+        if (php_sapi_name() !== "cli") {
+            $version = $response->getProtocolVersion();
+            $status = $response->getStatusCode();
+            $phrase = $response->getReasonPhrase();
+
+            header("HTTP/{$version} {$status} {$phrase}");
+
+            foreach ($response->getHeaders() as $name => $values) {
+                $name = str_replace('-', ' ', $name);
+                $name = ucwords($name);
+                $name = str_replace(' ', '-', $name);
+                foreach ($values as $value) {
+                    header("{$name}: {$value}", false);
+                }
             }
         }
-        $broker->always(new Middleware\Dispatcher($this->getDispatcher()));
 
-        return $broker->handle($this->request, function () {
-            $response = new Response();
-            return $response->withStatus(404);
-        });
+        $stream = $response->getBody();
+        $stream->rewind();
+        while (! $stream->eof()) {
+            echo $stream->read(8192);
+        }
     }
 
     public function __call($method, $args)
