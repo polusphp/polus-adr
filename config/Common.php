@@ -5,19 +5,17 @@ namespace Polus\Adr\_Config;
 use Aura\Di\Container;
 use Aura\Router\RouterContainer;
 use Aura\Router\Rule;
-use Franzl\Middleware\Whoops\Middleware;
+use Middlewares\JsonPayload;
+use Middlewares\UrlEncodePayload;
+use Middlewares\Whoops;
 use Polus\Adr\Dispatcher;
 use Polus\Adr\Resolver;
-use Polus\Middleware\CliResponseSender;
 use Polus\Middleware\Router;
 use Polus\Middleware\Status404;
 use Polus\Polus_Interface\ResolverInterface;
 use Polus\Polus_Interface\ConfigInterface;
 use Polus\Router\AliasRule;
 use Polus\Router\Route;
-use Relay\Middleware\FormContentHandler;
-use Relay\Middleware\JsonContentHandler;
-use Relay\Middleware\ResponseSender;
 use Psr\Container\ContainerInterface;
 
 class Common implements ConfigInterface
@@ -25,7 +23,7 @@ class Common implements ConfigInterface
     public function config(ContainerInterface $container): ContainerInterface
     {
         if (!$container instanceof Container) {
-            throw new \InvalidArgumentException("Config class not meant to be invoke outside core");
+            throw new \InvalidArgumentException("Config class not meant to be invoke outside polus core");
         }
         $di = $container;
 
@@ -35,22 +33,17 @@ class Common implements ConfigInterface
                 if ($container->has('mode:middlewares')) {
                     $queue = $container->get('mode:middlewares');
                 }
-                if (php_sapi_name() !== 'cli') {
-                    $queue[] = new ResponseSender();
-                } else {
-                    $queue[] = new CliResponseSender();
-                }
-                $queue[] = new Middleware();
+                $queue[] = new Whoops();
                 if ($container->has('mode:middlewares:preRouter')) {
                     $queue = array_merge($queue, $container->get('mode:middlewares:preRouter'));
                 }
+                $queue[] = new Status404();
                 $queue[] = new Router($container->get('polus/adr:router_container'));
                 if ($container->has('mode:middlewares:postRouter')) {
                     $queue = array_merge($queue, $container->get('mode:middlewares:postRouter'));
                 }
-                $queue[] = new Status404();
-                $queue[] = new FormContentHandler();
-                $queue[] = new JsonContentHandler(true);
+                $queue[] = new UrlEncodePayload();
+                $queue[] = new JsonPayload();
                 if ($container->has('mode:middlewares:preDispatcher')) {
                     $queue = array_merge($queue, $container->get('mode:middlewares:preDispatcher'));
                 }
