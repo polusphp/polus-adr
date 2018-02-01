@@ -9,8 +9,14 @@
             "email": "andreas@forme.se"
         }
     ],
+    "repositories": [
+        {
+            "url": "https://github.com/simoheinonen/middleman.git",
+            "type": "git"
+        }
+    ],
     "require": {
-        "php": ">=7.0.0",
+        "php": ">=7.2.0",
         "relay/middleware": "~1.0",
         "filp/whoops": "^2.1",
         "aura/di": "^3.0",
@@ -20,7 +26,7 @@
         "polus/polus-router": "^1.0",
         "polus/polus-middleware": "^2.0",
         "polus/config": "^1.0",
-        "mindplay/middleman": "^3.0",
+        "mindplay/middleman": "dev-psr-15",
         "middlewares/payload": "^1.0",
         "middlewares/whoops": "^1.0"
     },
