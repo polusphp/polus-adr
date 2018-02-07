@@ -8,14 +8,15 @@ use Aura\Router\Map;
 use Aura\Router\Route;
 use Aura\Router\RouterContainer;
 use BadMethodCallException;
-use Northwoods\Broker\Broker;
+use Ellipse\Dispatcher;
+use Interop\Http\Factory\ResponseFactoryInterface;
+use Interop\Http\Factory\ServerRequestFactoryInterface;
 use Polus\Adr\_Config\Common;
 use Polus\Config\ContainerBuilder;
 use Polus\Middleware;
 use Polus\Polus_Interface\DispatchInterface;
-use Psr\Http\Message\ResponseInterface;
+use Polus\Polus_Interface\ResolverInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Zend\Diactoros\Response;
 
 /**
  * Class App
@@ -24,6 +25,7 @@ use Zend\Diactoros\Response;
  * @method Route post(string $route, mixed $domain)
  * @method Route patch(string $route, mixed $domain)
  * @method Route delete(string $route, mixed $domain)
+ * @method Route attach(string $route, callable $domain)
  */
 class App
 {
@@ -71,13 +73,37 @@ class App
     protected $container;
 
     /**
+     * @var ResponseHandlerInterface
+     */
+    protected $responseHandler;
+
+    /**
+     * @var ResponseFactoryInterface
+     */
+    protected $responseFactory;
+
+    /**
+     * @var ServerRequestFactoryInterface
+     */
+    protected $requestFactory;
+
+    /**
+     * @var ResolverInterface
+     */
+    protected $resolver;
+
+    /**
+     * @var ActionHandlerFactory
+     */
+    protected $actionHandlerFactory;
+
+    /**
      * @param string $vendorNs
      * @param string $mode
-     * @param ServerRequestInterface|null $request
      * @throws \Aura\Di\Exception\ServiceNotFound
      * @throws \Aura\Di\Exception\SetterMethodNotFound
      */
-    public function __construct($vendorNs, $mode = 'production', ServerRequestInterface $request = null)
+    public function __construct($vendorNs, $mode = 'production')
     {
         $configs = [];
         if (isset($this->modeMap[$mode])) {
@@ -96,7 +122,15 @@ class App
         $this->container = $builder->newConfiguredInstance($configs, true);
         $this->dispatcher = $this->container->get('polus/adr:dispatcher');
         $this->routerContainer = $this->container->get('polus/adr:router_container');
-        $this->request = $request;
+        $this->responseHandler = $this->container->get('polus/adr:response_handler');
+
+        $this->responseFactory = $this->container->get('polus/adr:response_factory');
+        $this->requestFactory = $this->container->get('polus/adr:request_factory');
+
+        $this->actionHandlerFactory = $this->container->get('polus/adr:action_handler_factory');
+
+        $this->resolver = $this->container->get('polus/adr:dispatch_resolver');
+
         $this->map = $this->routerContainer->getMap();
         $this->middlewares = $this->container->get('polus/adr:middlewares');
     }
@@ -144,38 +178,13 @@ class App
 
     public function run()
     {
+        $this->request = $this->requestFactory->createServerRequestFromArray($_SERVER);
         $this->middlewares[] = new Middleware\Dispatcher($this->getDispatcher());
-        $middlewareDispatcher = new \mindplay\middleman\Dispatcher($this->middlewares);
+        $middlewareDispatcher = new Dispatcher(new Dispatcher\FallbackResponse($this->responseFactory->createResponse(404)), $this->middlewares);
 
-        $response = $middlewareDispatcher->dispatch($this->request);
+        $response = $middlewareDispatcher->handle($this->request);
 
-        $this->render($response);
-    }
-
-    public function render(ResponseInterface $response)
-    {
-        if (php_sapi_name() !== "cli") {
-            $version = $response->getProtocolVersion();
-            $status = $response->getStatusCode();
-            $phrase = $response->getReasonPhrase();
-
-            header("HTTP/{$version} {$status} {$phrase}");
-
-            foreach ($response->getHeaders() as $name => $values) {
-                $name = str_replace('-', ' ', $name);
-                $name = ucwords($name);
-                $name = str_replace(' ', '-', $name);
-                foreach ($values as $value) {
-                    header("{$name}: {$value}", false);
-                }
-            }
-        }
-
-        $stream = $response->getBody();
-        $stream->rewind();
-        while (! $stream->eof()) {
-            echo $stream->read(8192);
-        }
+        $this->responseHandler->handle($response);
     }
 
     public function __call($method, $args)
@@ -183,12 +192,35 @@ class App
         $allowed = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'];
         if (in_array($method, $allowed)) {
             $path = $args[0];
-            $domain = $args[1];
-            if (!($domain instanceof Action)) {
-                $domain = new Action($domain, $args[2] ?? null, $args[3] ?? null);
+            $action = $args[1];
+
+            if (!$action instanceof ActionHandler) {
+                if (!($action instanceof Action)) {
+                    $action = new Action($action, $args[2] ?? null, $args[3] ?? null);
+                }
+
+                $action = $this->actionHandlerFactory->newInstance($action);
             }
 
-            return $this->map->$method(md5($method . $path), $path, $domain);
+            if ($args[2] instanceof \Traversable || is_array($args[2])) {
+                $action = new Dispatcher($action, $args[2]);
+            }
+
+            return $this->map->$method(md5($method . $path), $path, $action);
+        } elseif ($method === 'attach') {
+            $pathPrefix = $args[0];
+            $clb = $args[1];
+            if (!is_callable($clb)) {
+                throw new \Exception("Invalid argument most be callable");
+            }
+            $middlewares = [];
+            if ($args[2] instanceof \Traversable || is_array($args[2])) {
+                $middlewares = $args[2];
+            }
+
+            return $this->map->attach(md5($pathPrefix), $pathPrefix, function($map) use($middlewares, $clb) {
+                $clb($map, $middlewares);
+            });
         }
         throw new BadMethodCallException();
     }

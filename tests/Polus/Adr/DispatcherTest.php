@@ -40,7 +40,7 @@ class DispatcherTest extends TestCase
 
     public function testCreateDispatcher()
     {
-        $dispatcher = new Dispatcher(new Resolver(function ($resolver) {
+        $dispatcher = new ActionDispatcher(new Resolver(function ($resolver) {
             return false;
         }));
 
@@ -57,7 +57,7 @@ class DispatcherTest extends TestCase
 
     public function testDispatchActionWithCallableDomain()
     {
-        $dispatcher = new Dispatcher($this->resolver);
+        $dispatcher = new ActionDispatcher($this->resolver);
         $this->route->handler(new Action(function($input) {
             return (new Payload())->setStatus(PayloadStatus::CREATED)->setOutput(['test' => true]);
         }));
@@ -70,7 +70,7 @@ class DispatcherTest extends TestCase
 
     public function testDispatchActionWithClassName()
     {
-        $dispatcher = new Dispatcher($this->resolver);
+        $dispatcher = new ActionDispatcher($this->resolver);
         $this->route->handler(new Action(DomainDispatchTest::class));
 
         $response = $dispatcher->dispatch($this->route, $this->request, $this->response);
@@ -81,7 +81,7 @@ class DispatcherTest extends TestCase
 
     public function testDispatchCustomInput()
     {
-        $dispatcher = new Dispatcher($this->resolver);
+        $dispatcher = new ActionDispatcher($this->resolver);
         $this->route->handler(new Action(DispatchInputTest::class));
 
         $response = $dispatcher->dispatch($this->route, $this->request, $this->response);
@@ -92,7 +92,7 @@ class DispatcherTest extends TestCase
 
     public function testDispatchCustomResponder()
     {
-        $dispatcher = new Dispatcher($this->resolver);
+        $dispatcher = new ActionDispatcher($this->resolver);
         $this->route->handler(new Action(DispatchResponderTest::class));
 
         $response = $dispatcher->dispatch($this->route, $this->request, $this->response);
@@ -103,7 +103,7 @@ class DispatcherTest extends TestCase
 
     public function testInputExceptionResponse()
     {
-        $dispatcher = new Dispatcher($this->resolver);
+        $dispatcher = new ActionDispatcher($this->resolver);
         $this->route->handler(new Action(EmptyDomain::class, function() {
             throw new \DomainException('Input exception test');
         }));
