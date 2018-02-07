@@ -8,8 +8,12 @@ use Aura\Router\Rule;
 use Middlewares\JsonPayload;
 use Middlewares\UrlEncodePayload;
 use Middlewares\Whoops;
-use Polus\Adr\Dispatcher;
+use Polus\Adr\ActionDispatcher;
+use Polus\Adr\ActionHandlerFactory;
+use Polus\Adr\Exception\MissingConfigValue;
 use Polus\Adr\Resolver;
+use Polus\Adr\ResponseHandler\CliResponseHandler;
+use Polus\Adr\ResponseHandler\HttpResponseHandler;
 use Polus\Middleware\Router;
 use Polus\Middleware\Status404;
 use Polus\Polus_Interface\ResolverInterface;
@@ -53,6 +57,23 @@ class Common implements ConfigInterface
             $di->set('polus/adr:middlewares', $container->get('polus/adr:middlewares'));
         }
 
+        if (!$container->has('polus/adr:response_handler')) {
+            if (php_sapi_name() === 'cli') {
+                $di->set('polus/adr:response_handler', new CliResponseHandler());
+            } else {
+                $di->set('polus/adr:response_handler', new HttpResponseHandler());
+            }
+        } else {
+            $di->set('polus/adr:response_handler', $container->get('polus/adr:response_handler'));
+        }
+
+        if (!$container->has('polus/adr:response_factory')) {
+            throw new MissingConfigValue("Polus needs a response factory");
+        }
+        if (!$container->has('polus/adr:request_factory')) {
+            throw new MissingConfigValue("Polus needs a request factory");
+        }
+
         if (!$container->has('polus/adr:dispatch_resolver')) {
             $di->set('polus/adr:dispatch_resolver', $di->lazyNew(Resolver::class, [
                 'resolver' => function ($cls) use ($di) {
@@ -61,6 +82,11 @@ class Common implements ConfigInterface
             ]));
         } else {
             $di->set('polus/adr:dispatch_resolver', $container->get('polus/adr:dispatch_resolver'));
+        }
+        if (!$container->has('polus/adr:action_handler_factory')) {
+            $di->set('polus/adr:action_handler_factory', $di->lazyNew(ActionHandlerFactory::class, [
+                'responseFactory' => $di->lazyGet('polus/adr:response_factory')
+            ]));
         }
 
         if (!$container->has('polus/adr:router_container')) {
@@ -86,7 +112,7 @@ class Common implements ConfigInterface
         }
 
         $di->types[ResolverInterface::class] = $di->lazyGet('polus/adr:dispatch_resolver');
-        $di->set('polus/adr:dispatcher', $di->lazyNew(Dispatcher::class));
+        $di->set('polus/adr:dispatcher', $di->lazyNew(ActionDispatcher::class));
 
         return $di;
     }
