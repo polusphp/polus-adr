@@ -1,44 +1,39 @@
 <?php
-declare(strict_types=1);
 
 namespace Polus\Adr;
 
 use Aura\Payload\Payload;
 use Aura\Payload_Interface\PayloadStatus;
-use Aura\Router\Route;
 use DomainException;
-use InvalidArgumentException;
-use Polus\Polus_Interface\DispatchInterface;
+use Interop\Http\Factory\ResponseFactoryInterface;
 use Polus\Polus_Interface\ResolverInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class Dispatcher implements DispatchInterface
+class ActionHandler implements RequestHandlerInterface
 {
-    protected $resolver;
+    private $action;
+    private $responseFactory;
+    private $resolver;
 
-    public function __construct(ResolverInterface $resolver)
+    public function __construct(ActionInterface $action, ResolverInterface $resolver, ResponseFactoryInterface $responseFactory)
     {
-        if (is_null($resolver)) {
-            throw new InvalidArgumentException('Missing resolver');
-        }
-
+        $this->action = $action;
         $this->resolver = $resolver;
+        $this->responseFactory = $responseFactory;
     }
 
-    public function dispatch(
-        Route $route,
-        ServerRequestInterface $request,
-        ResponseInterface $response
-    ): ResponseInterface {
-        $action = $route->handler;
-        if (!($action instanceof Action)) {
-            return $response->withStatus(500);
-        }
-
+    /**
+     * Handle the request and return a response.
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
         $domain = false;
-        if ($action->getDomain()) {
-            $domain = $action->getDomain();
+        if ($this->action->getDomain()) {
+            $domain = $this->action->getDomain();
             if (!is_callable($domain)) {
                 $domain = $this->resolver->resolve($domain);
             }
@@ -46,7 +41,7 @@ class Dispatcher implements DispatchInterface
 
         if (is_callable($domain)) {
             try {
-                $input = $action->getInput();
+                $input = $this->action->getInput();
                 if (!is_callable($input)) {
                     $input = $this->resolver->resolve($input);
                 }
@@ -68,8 +63,9 @@ class Dispatcher implements DispatchInterface
             $payload->setStatus(PayloadStatus::SUCCESS);
         }
 
-        $responder = $this->resolver->resolve($action->getResponder());
+        $responder = $this->resolver->resolve($this->action->getResponder());
 
-        return $responder($request, $response, $payload);
+        return $responder($request, $this->responseFactory->createResponse(), $payload);
+
     }
 }
