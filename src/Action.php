@@ -5,8 +5,13 @@ namespace Polus\Adr;
 
 use Polus\Adr\Responder\JsonResponder;
 
-class Action
+class Action implements ActionInterface
 {
+    public static function fromResponder($responder): Action
+    {
+        return new self(null, null, $responder);
+    }
+
     protected $input = Input::class;
     protected $responder = JsonResponder::class;
     protected $domain;
