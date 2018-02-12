@@ -196,7 +196,9 @@ class App
 
             if (!$action instanceof ActionHandler) {
                 if (!($action instanceof Action)) {
-                    $action = new Action($action, $args[2] ?? null, $args[3] ?? null);
+                    $responder = $args[3] ?? null;
+                    $input = $args[2] instanceof \Traversable || is_array($args[2]) ? null : ($args[2] ?? null);
+                    $action = new Action($action, $input, $responder);
                 }
 
                 $action = $this->actionHandlerFactory->newInstance($action);
