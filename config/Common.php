@@ -14,6 +14,7 @@ use Polus\Adr\Exception\MissingConfigValue;
 use Polus\Adr\Resolver;
 use Polus\Adr\ResponseHandler\CliResponseHandler;
 use Polus\Adr\ResponseHandler\HttpResponseHandler;
+use Polus\Middleware\HttpError;
 use Polus\Middleware\Router;
 use Polus\Middleware\Status404;
 use Polus\Polus_Interface\ResolverInterface;
@@ -41,7 +42,16 @@ class Common implements ConfigInterface
                 if ($container->has('mode:middlewares:preRouter')) {
                     $queue = array_merge($queue, $container->get('mode:middlewares:preRouter'));
                 }
-                $queue[] = new Status404();
+
+                if ($container->has('polus/adr:http_error_handler')) {
+                    $queue[] = $container->get('polus/adr:http_error_handler');
+                } else {
+                    if (!$container->has('polus/adr:stream_factory')) {
+                        throw new MissingConfigValue("Polus needs a stream factory");
+                    }
+                    $queue[] = new HttpError($container->get('polus/adr:stream_factory'));
+                }
+
                 $queue[] = new Router($container->get('polus/adr:router_container'));
                 if ($container->has('mode:middlewares:postRouter')) {
                     $queue = array_merge($queue, $container->get('mode:middlewares:postRouter'));

@@ -18,7 +18,7 @@
         "aura/payload": "~3.0",
         "polus/polus-interface": "^1.0",
         "polus/polus-router": "^1.0",
-        "polus/polus-middleware": "^2.0",
+        "polus/polus-middleware": "^2.1",
         "polus/config": "^1.0",
         "middlewares/payload": "^1.0",
         "middlewares/whoops": "^1.0",
