@@ -120,6 +120,7 @@ class App
 
         $builder = new ContainerBuilder();
         $this->container = $builder->newConfiguredInstance($configs, true);
+
         $this->dispatcher = $this->container->get('polus/adr:dispatcher');
         $this->routerContainer = $this->container->get('polus/adr:router_container');
         $this->responseHandler = $this->container->get('polus/adr:response_handler');
@@ -220,7 +221,7 @@ class App
                 $middlewares = $args[2];
             }
 
-            return $this->map->attach(md5($pathPrefix), $pathPrefix, function($map) use($middlewares, $clb) {
+            return $this->map->attach(md5($pathPrefix), $pathPrefix, function ($map) use ($middlewares, $clb) {
                 $clb($map, $middlewares);
             });
         }
