@@ -15,6 +15,7 @@ use Polus\Adr\Resolver;
 use Polus\Adr\ResponseHandler\CliResponseHandler;
 use Polus\Adr\ResponseHandler\HttpResponseHandler;
 use Polus\Middleware\HttpError;
+use Polus\Middleware\ProductionErrorHandler;
 use Polus\Middleware\Router;
 use Polus\Middleware\Status404;
 use Polus\Polus_Interface\ResolverInterface;
@@ -38,7 +39,9 @@ class Common implements ConfigInterface
                 if ($container->has('mode:middlewares')) {
                     $queue = $container->get('mode:middlewares');
                 }
-                $queue[] = new Whoops();
+                if ($container->has('polus/adr:whoops')) {
+                    $queue[] = $container->get('polus/adr:whoops');
+                }
                 if ($container->has('mode:middlewares:preRouter')) {
                     $queue = array_merge($queue, $container->get('mode:middlewares:preRouter'));
                 }
