@@ -195,7 +195,7 @@ class App
             $action = $args[1];
 
             if (!$action instanceof ActionHandler) {
-                if (!($action instanceof Action)) {
+                if (!($action instanceof ActionInterface)) {
                     $responder = $args[3] ?? null;
                     $input = $args[2] instanceof \Traversable || is_array($args[2]) ? null : ($args[2] ?? null);
                     $action = new Action($action, $input, $responder);
