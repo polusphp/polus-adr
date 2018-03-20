@@ -103,7 +103,7 @@ class App
      * @throws \Aura\Di\Exception\ServiceNotFound
      * @throws \Aura\Di\Exception\SetterMethodNotFound
      */
-    public function __construct($vendorNs, $mode = 'production')
+    public function __construct($vendorNs, $mode = 'production', array $extraConfig = [])
     {
         $configs = [];
         if (isset($this->modeMap[$mode])) {
@@ -117,6 +117,7 @@ class App
         }
         $configs[] = $vendorNs . '\_Config\Common';
         $configs[] = new Common();
+        $configs = array_merge($configs, $extraConfig);
 
         $builder = new ContainerBuilder();
         $this->container = $builder->newConfiguredInstance($configs, true);
